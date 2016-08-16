@@ -3,6 +3,8 @@ outside the editor is difficult. To make it easier, this console displays
 output from the `Debug` class, as well as any errors and exceptions thrown, in
 the game itself. This is especially useful on mobile devices.
 
+Write logs to HTML located on game folder. Tested on Windows Standalone only.
+
 
 ## Using
 
@@ -13,5 +15,5 @@ in the Inspector to open the console on mobile devices.
 
 ## Compatibility
 
-Supports Unity 4 and 5. It hasn't been tested on all the platforms that Unity
+Supports Unity 5.x. It hasn't been tested on all the platforms that Unity
 supports but it probably works on most.
