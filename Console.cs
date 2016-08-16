@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
-namespace Consolation
+namespace SevenSails
 {
 	/// <summary>
 	/// A console to display Unity's debug logs in-game.
@@ -45,16 +46,19 @@ namespace Consolation
 		/// </summary>
 		public int maxLogs = 1000;
 
-		#endregion
+		
 
-		readonly List<Log> logs = new List<Log>();
+        #endregion
+
+        readonly List<Log> logs = new List<Log>();
 		Vector2 scrollPosition;
 		bool visible;
 		bool collapse;
 
-		// Visual elements:
+        string _filePath;
 
-		static readonly Dictionary<LogType, Color> logTypeColors = new Dictionary<LogType, Color>
+        // Visual elements:
+        static readonly Dictionary<LogType, Color> logTypeColors = new Dictionary<LogType, Color>
 		{
 			{ LogType.Assert, Color.white },
 			{ LogType.Error, Color.red },
@@ -73,23 +77,27 @@ namespace Consolation
 
 		void OnEnable ()
 		{
-#if UNITY_5
 			Application.logMessageReceived += HandleLog;
-#else
-			Application.RegisterLogCallback(HandleLog);
-#endif
-		}
+        }
 
 		void OnDisable ()
 		{
-#if UNITY_5
 			Application.logMessageReceived -= HandleLog;
-#else
-			Application.RegisterLogCallback(null);
-#endif
 		}
 
-		void Update ()
+	    void Start()
+	    {
+
+            DontDestroyOnLoad(gameObject);
+
+            _filePath = Path.Combine(Path.GetFullPath(Application.dataPath + "/../"), "LOG.html");
+
+            if (File.Exists(_filePath))
+				File.Delete(_filePath);
+            
+        }
+
+        void Update ()
 		{
 			if (Input.GetKeyDown(toggleKey)) {
 				visible = !visible;
@@ -100,7 +108,7 @@ namespace Consolation
 			}
 		}
 
-		void OnGUI ()
+        void OnGUI ()
 		{
 			if (!visible) {
 				return;
@@ -194,7 +202,41 @@ namespace Consolation
 			});
 
 			TrimExcessLogs();
-		}
+            WriteLogs(logs);
+        }
+
+	    void WriteLogs(List<Log> logs)
+	    {
+
+            var htmlHeader = "<!doctype html><html class='no-js' lang=''><head><meta charset = 'utf-8'><title>"+ Application.productName + " / Log Time: "+DateTime.Now+ "</title></head><body style='font-family:Lucida Console, Monaco, monospace; background-color:#f2f2f2'>";
+            var htmlFooter = "</body></html>";
+
+			using (var sw = File.AppendText(_filePath))
+            {
+                sw.WriteLine(htmlHeader);
+                for (int i = 0; i < logs.Count; i++)
+                {
+
+                    var color = "style='color:black'";
+                    switch (logs[i].type)
+                    {
+                        case LogType.Error:
+                        case LogType.Exception:
+                            color = "style='background-color:#D9001D;color:white'";
+                            break;
+                        case LogType.Warning:
+                            color = "style='background-color:yellow;color:black'";
+                            break;
+                    }
+
+                    sw.WriteLine("<p " + color + ">[" + logs[i].type + "] " + logs[i].message+"</p>");
+                    if(logs[i].stackTrace != "")
+                        sw.WriteLine("<p style='color:gray'>[Stack] " + logs[i].stackTrace + "</p>");
+                    sw.WriteLine("<hr>");
+                }
+                sw.WriteLine(htmlFooter);
+            }
+        }
 
 		/// <summary>
 		/// Determines whether the scroll view is scrolled to the bottom.
